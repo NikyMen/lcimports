@@ -1,0 +1,86 @@
+[
+  {
+    "id": "p1",
+    "nombre": "Auriculares Bluetooth ANC",
+    "precio": 129.99,
+    "categoria": "electronica",
+    "imagen": "https://images.unsplash.com/photo-1518443881233-b1e7f2f24a47?q=80&w=800&auto=format&fit=crop"
+  },
+  {
+    "id": "p2",
+    "nombre": "Smartwatch Deportivo",
+    "precio": 159.9,
+    "categoria": "electronica",
+    "imagen": "https://images.unsplash.com/photo-1511735111819-9a3f7709049c?q=80&w=800&auto=format&fit=crop"
+  },
+  {
+    "id": "p3",
+    "nombre": "Zapatillas Urbanas",
+    "precio": 89.5,
+    "categoria": "moda",
+    "imagen": "https://images.unsplash.com/photo-1608231387042-66d1773070a5?q=80&w=800&auto=format&fit=crop"
+  },
+  {
+    "id": "p4",
+    "nombre": "Campera Impermeable",
+    "precio": 149.0,
+    "categoria": "moda",
+    "imagen": "https://images.unsplash.com/photo-1485145782098-4f5fd605a66b?q=80&w=800&auto=format&fit=crop"
+  },
+  {
+    "id": "p5",
+    "nombre": "Perfume Unisex 100ml",
+    "precio": 74.95,
+    "categoria": "perfumeria",
+    "imagen": "https://images.unsplash.com/photo-1556228578-9d8cc113f336?q=80&w=800&auto=format&fit=crop"
+  },
+  {
+    "id": "p6",
+    "nombre": "Set Fragancias Travel",
+    "precio": 59.99,
+    "categoria": "perfumeria",
+    "imagen": "https://images.unsplash.com/photo-1611930022073-b7a4ba5fcccd?q=80&w=800&auto=format&fit=crop"
+  },
+  {
+    "id": "p7",
+    "nombre": "Mochila Antirrobo",
+    "precio": 64.9,
+    "categoria": "accesorios",
+    "imagen": "https://images.unsplash.com/photo-1596755094514-f87e3e5d6d00?q=80&w=800&auto=format&fit=crop"
+  },
+  {
+    "id": "p8",
+    "nombre": "Gafas de Sol UV400",
+    "precio": 39.99,
+    "categoria": "accesorios",
+    "imagen": "https://images.unsplash.com/photo-1499083097717-a156f48b9b7b?q=80&w=800&auto=format&fit=crop"
+  },
+  {
+    "id": "p9",
+    "nombre": "Teclado Mecánico RGB",
+    "precio": 119.0,
+    "categoria": "electronica",
+    "imagen": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=800&auto=format&fit=crop"
+  },
+  {
+    "id": "p10",
+    "nombre": "Billetera de Cuero",
+    "precio": 54.0,
+    "categoria": "accesorios",
+    "imagen": "https://images.unsplash.com/photo-1608256246200-53e635b5b9d7?q=80&w=800&auto=format&fit=crop"
+  },
+  {
+    "id": "p11",
+    "nombre": "Remera Oversize",
+    "precio": 29.99,
+    "categoria": "moda",
+    "imagen": "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?q=80&w=800&auto=format&fit=crop"
+  },
+  {
+    "id": "p12",
+    "nombre": "Set Auriculares + Estuche",
+    "precio": 49.99,
+    "categoria": "electronica",
+    "imagen": "https://images.unsplash.com/photo-1519204923167-1a72ddadcfec?q=80&w=800&auto=format&fit=crop"
+  }
+]

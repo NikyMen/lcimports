@@ -1,0 +1,57 @@
+:root {
+  --overlay: rgba(0, 0, 0, 0.45);
+}
+
+html, body {
+  scroll-behavior: smooth;
+}
+
+.parallax-hero {
+  position: relative;
+  min-height: 65vh;
+  background-image: url("https://p.vitalmx.com/photos/users/19924/photos/35522/s1600_102506230_1275865004.jpg");
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+.parallax-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--overlay);
+}
+
+.parallax-hero .container {
+  position: relative;
+  z-index: 1;
+}
+
+/* Cards */
+.card-img-top {
+  height: 210px;
+  object-fit: cover;
+}
+
+/* Offcanvas carrito */
+#cart-items .list-group-item {
+  border: 1px solid #eee;
+}
+
+.quantity-control button {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+}
+
+/* Utilidades */
+.object-fit-cover {
+  object-fit: cover;
+}
+
+/* Ajustes responsivos */
+@media (max-width: 576px) {
+  .parallax-hero {
+    min-height: 55vh;
+  }
+}

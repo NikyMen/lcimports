@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de Administración - LC Imports</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+  <!-- Login Modal -->
+  <div class="modal fade" id="loginModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Iniciar Sesión</h5>
+        </div>
+        <div class="modal-body">
+          <form id="loginForm">
+            <div class="mb-3">
+              <label class="form-label">Usuario</label>
+              <input type="text" class="form-control" id="username" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Contraseña</label>
+              <input type="password" class="form-control" id="password" required>
+            </div>
+            <div id="loginError" class="alert alert-danger d-none"></div>
+            <button type="submit" class="btn btn-primary w-100">Iniciar Sesión</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel Principal -->
+  <div id="adminPanel" class="d-none">
+    <nav class="navbar navbar-dark bg-dark">
+      <div class="container-fluid">
+        <span class="navbar-brand">Panel de Administración - LC Imports</span>
+        <div>
+          <button class="btn btn-outline-warning me-2" data-bs-toggle="modal" data-bs-target="#passwordModal">
+            <i class="bi bi-key"></i> Cambiar Contraseña
+          </button>
+          <button class="btn btn-outline-light" onclick="logout()">
+            <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container mt-4">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Gestión de Productos</h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#productModal">
+          <i class="bi bi-plus-circle"></i> Nuevo Producto
+        </button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Imagen</th>
+              <th>Nombre</th>
+              <th>Precio</th>
+              <th>Categoría</th>
+              <th>Stock</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="productTable">
+            <!-- Productos cargados dinámicamente -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Producto -->
+  <div class="modal fade" id="productModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="productModalTitle">Nuevo Producto</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="productForm" enctype="multipart/form-data">
+            <input type="hidden" id="productId">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Nombre</label>
+                  <input type="text" class="form-control" id="productName" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Precio</label>
+                  <input type="number" step="0.01" class="form-control" id="productPrice" required>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Categoría</label>
+                  <select class="form-select" id="productCategory" required>
+                    <option value="">Seleccionar categoría</option>
+                    <option value="electronica">Electrónica</option>
+                    <option value="moda">Moda</option>
+                    <option value="perfumeria">Perfumería</option>
+                    <option value="accesorios">Accesorios</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Stock</label>
+                  <input type="number" class="form-control" id="productStock" value="0">
+                </div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Descripción</label>
+              <textarea class="form-control" id="productDescription" rows="3"></textarea>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Imagen</label>
+              <input type="file" class="form-control" id="productImage" accept="image/*">
+              <div class="form-text">Formatos: JPG, PNG, GIF. Máximo 5MB.</div>
+            </div>
+            <div id="productError" class="alert alert-danger d-none"></div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" onclick="saveProduct()">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Cambiar Contraseña -->
+  <div class="modal fade" id="passwordModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Cambiar Contraseña</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="passwordForm">
+            <div class="mb-3">
+              <label class="form-label">Contraseña Actual</label>
+              <input type="password" class="form-control" id="currentPassword" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Nueva Contraseña</label>
+              <input type="password" class="form-control" id="newPassword" required minlength="6">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Confirmar Nueva Contraseña</label>
+              <input type="password" class="form-control" id="confirmPassword" required minlength="6">
+            </div>
+            <div id="passwordError" class="alert alert-danger d-none"></div>
+            <div id="passwordSuccess" class="alert alert-success d-none"></div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" onclick="changePassword()">Cambiar Contraseña</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let token = localStorage.getItem('admin_token');
+    let editingProductId = null;
+
+    // Verificar si hay token al cargar
+    if (token) {
+      showAdminPanel();
+      loadProducts();
+    } else {
+      showLoginModal();
+    }
+
+    function showLoginModal() {
+      new bootstrap.Modal(document.getElementById('loginModal')).show();
+    }
+
+    function showAdminPanel() {
+      document.getElementById('loginModal').style.display = 'none';
+      document.getElementById('adminPanel').classList.remove('d-none');
+    }
+
+    // Login
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const errorDiv = document.getElementById('loginError');
+
+      try {
+        const response = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          token = data.token;
+          localStorage.setItem('admin_token', token);
+          showAdminPanel();
+          loadProducts();
+        } else {
+          errorDiv.textContent = data.error;
+          errorDiv.classList.remove('d-none');
+        }
+      } catch (error) {
+        errorDiv.textContent = 'Error de conexión';
+        errorDiv.classList.remove('d-none');
+      }
+    });
+
+    function logout() {
+      localStorage.removeItem('admin_token');
+      location.reload();
+    }
+
+    // Cargar productos
+    async function loadProducts() {
+      try {
+        const response = await fetch('/api/admin/productos', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const productos = await response.json();
+        const tbody = document.getElementById('productTable');
+
+        tbody.innerHTML = productos.map(p => `
+          <tr>
+            <td>${p.id}</td>
+            <td>
+              ${p.imagen ? `<img src="${p.imagen}" width="50" height="50" class="rounded object-fit-cover">` : 'Sin imagen'}
+            </td>
+            <td>${p.nombre}</td>
+            <td>$${p.precio}</td>
+            <td class="text-capitalize">${p.categoria}</td>
+            <td>${p.stock}</td>
+            <td>
+              <span class="badge ${p.activo ? 'bg-success' : 'bg-danger'}">
+                ${p.activo ? 'Activo' : 'Inactivo'}
+              </span>
+            </td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary" onclick="editProduct(${p.id})">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct(${p.id})">
+                <i class="bi bi-trash"></i>
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (error) {
+        console.error('Error cargando productos:', error);
+      }
+    }
+
+    // Nuevo producto
+    function newProduct() {
+      editingProductId = null;
+      document.getElementById('productModalTitle').textContent = 'Nuevo Producto';
+      document.getElementById('productForm').reset();
+      document.getElementById('productId').value = '';
+    }
+
+    // Editar producto
+    async function editProduct(id) {
+      try {
+        const response = await fetch(`/api/admin/productos`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const productos = await response.json();
+        const producto = productos.find(p => p.id === id);
+
+        if (producto) {
+          editingProductId = id;
+          document.getElementById('productModalTitle').textContent = 'Editar Producto';
+          document.getElementById('productId').value = producto.id;
+          document.getElementById('productName').value = producto.nombre;
+          document.getElementById('productPrice').value = producto.precio;
+          document.getElementById('productCategory').value = producto.categoria;
+          document.getElementById('productStock').value = producto.stock;
+          document.getElementById('productDescription').value = producto.descripcion || '';
+
+          new bootstrap.Modal(document.getElementById('productModal')).show();
+        }
+      } catch (error) {
+        console.error('Error cargando producto:', error);
+      }
+    }
+
+    // Guardar producto
+    async function saveProduct() {
+      const formData = new FormData();
+      formData.append('nombre', document.getElementById('productName').value);
+      formData.append('precio', document.getElementById('productPrice').value);
+      formData.append('categoria', document.getElementById('productCategory').value);
+      formData.append('stock', document.getElementById('productStock').value);
+      formData.append('descripcion', document.getElementById('productDescription').value);
+
+      const imageFile = document.getElementById('productImage').files[0];
+      if (imageFile) {
+        formData.append('imagen', imageFile);
+      }
+
+      const errorDiv = document.getElementById('productError');
+      errorDiv.classList.add('d-none');
+
+      try {
+        const url = editingProductId ? `/api/admin/productos/${editingProductId}` : '/api/admin/productos';
+        const method = editingProductId ? 'PUT' : 'POST';
+
+        const response = await fetch(url, {
+          method,
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          bootstrap.Modal.getInstance(document.getElementById('productModal')).hide();
+          loadProducts();
+        } else {
+          errorDiv.textContent = data.error;
+          errorDiv.classList.remove('d-none');
+        }
+      } catch (error) {
+        errorDiv.textContent = 'Error guardando producto';
+        errorDiv.classList.remove('d-none');
+      }
+    }
+
+    // Eliminar producto
+    async function deleteProduct(id) {
+      if (!confirm('¿Estás seguro de eliminar este producto?')) return;
+
+      try {
+        const response = await fetch(`/api/admin/productos/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          loadProducts();
+        }
+      } catch (error) {
+        console.error('Error eliminando producto:', error);
+      }
+    }
+
+    // Event listener para nuevo producto
+    document.getElementById('productModal').addEventListener('show.bs.modal', function (event) {
+      if (!event.relatedTarget) return;
+      newProduct();
+    });
+  </script>
+</body>
+</html>
+
+    // Cambiar contraseña
+    async function changePassword() {
+      const currentPassword = document.getElementById('currentPassword').value;
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      const errorDiv = document.getElementById('passwordError');
+      const successDiv = document.getElementById('passwordSuccess');
+
+      // Limpiar mensajes
+      errorDiv.classList.add('d-none');
+      successDiv.classList.add('d-none');
+
+      // Validaciones
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        errorDiv.textContent = 'Todos los campos son requeridos';
+        errorDiv.classList.remove('d-none');
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        errorDiv.textContent = 'Las contraseñas no coinciden';
+        errorDiv.classList.remove('d-none');
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        errorDiv.textContent = 'La nueva contraseña debe tener al menos 6 caracteres';
+        errorDiv.classList.remove('d-none');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/admin/change-password', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ currentPassword, newPassword })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          successDiv.textContent = data.mensaje;
+          successDiv.classList.remove('d-none');
+          document.getElementById('passwordForm').reset();
+          
+          // Cerrar modal después de 2 segundos
+          setTimeout(() => {
+            bootstrap.Modal.getInstance(document.getElementById('passwordModal')).hide();
+          }, 2000);
+        } else {
+          errorDiv.textContent = data.error;
+          errorDiv.classList.remove('d-none');
+        }
+      } catch (error) {
+        errorDiv.textContent = 'Error de conexión';
+        errorDiv.classList.remove('d-none');
+      }
+    }
