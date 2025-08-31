@@ -2,7 +2,13 @@
 const CURRENCY = "USD";
 const LOCALE = "es-ES";
 const LS_CART_KEY = "lcimports_cart_v1";
-const API_BASE = "http://localhost:3000/api";
+// Cambiar esta línea:
+// const API_BASE = "http://localhost:3000/api";
+
+// Por esta:
+const API_BASE = window.location.hostname === 'localhost' 
+  ? "http://localhost:3000/api" 
+  : "/api";
 
 // Utilidades
 const formatMoney = (n) =>
@@ -287,4 +293,29 @@ function escapeHtml(str) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+// Función para agregar producto (actualizar en tu app.js)
+async function agregarProducto(formData) {
+    try {
+        const token = localStorage.getItem('adminToken');
+        const response = await fetch(`${API_BASE}/productos`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData // No establecer Content-Type, el navegador lo hará automáticamente
+        });
+        
+        if (!response.ok) {
+            throw new Error('Error al agregar producto');
+        }
+        
+        const producto = await response.json();
+        console.log('Producto agregado:', producto);
+        return producto;
+    } catch (error) {
+        console.error('Error:', error);
+        throw error;
+    }
 }
