@@ -1,30 +1,52 @@
-// Usar una base de datos en la nube como Supabase, PlanetScale o MongoDB Atlas
-import { createClient } from '@supabase/supabase-js';
-import formidable from 'formidable';
-import fs from 'fs';
-import jwt from 'jsonwebtoken';
+const { createClient } = require('@supabase/supabase-js');
+const formidable = require('formidable');
+const fs = require('fs').promises;
+const path = require('path');
+const jwt = require('jsonwebtoken');
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+);
 
-// Función para verificar token JWT
-function verifyToken(req) {
+// Rutas de archivos JSON
+const PRODUCTOS_FILE = path.join(process.cwd(), 'data', 'productos.json');
+const USUARIOS_FILE = path.join(process.cwd(), 'data', 'usuarios.json');
+
+// Función para leer productos
+async function leerProductos() {
+  try {
+    const data = await fs.readFile(PRODUCTOS_FILE, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    return [];
+  }
+}
+
+// Función para escribir productos
+async function escribirProductos(productos) {
+  await fs.writeFile(PRODUCTOS_FILE, JSON.stringify(productos, null, 2));
+}
+
+// Función para verificar JWT
+function verificarToken(req) {
   const authHeader = req.headers.authorization;
   if (!authHeader) return null;
   
   const token = authHeader.split(' ')[1];
   try {
     return jwt.verify(token, process.env.JWT_SECRET);
-  } catch {
+  } catch (error) {
     return null;
   }
 }
 
-// Función para subir imagen a Supabase Storage
-async function uploadImageToSupabase(file) {
-  const fileBuffer = fs.readFileSync(file.filepath);
-  const fileName = `${Date.now()}-${file.originalFilename}`;
+// Función para subir imagen a Supabase
+async function subirImagen(file) {
+  const fileExt = path.extname(file.originalFilename);
+  const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}${fileExt}`;
+  
+  const fileBuffer = await fs.readFile(file.filepath);
   
   const { data, error } = await supabase.storage
     .from('productos-images')
@@ -32,24 +54,17 @@ async function uploadImageToSupabase(file) {
       contentType: file.mimetype,
       upsert: false
     });
-  
+
   if (error) throw error;
   
-  // Obtener URL pública
   const { data: { publicUrl } } = supabase.storage
     .from('productos-images')
     .getPublicUrl(fileName);
-  
+    
   return publicUrl;
 }
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   // Configurar CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -61,111 +76,76 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      // Obtener todos los productos activos
-      const { data, error } = await supabase
-        .from('productos')
-        .select('*')
-        .eq('activo', true)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return res.json(data);
+      // Obtener todos los productos
+      const productos = await leerProductos();
+      return res.status(200).json(productos.filter(p => p.activo));
     }
     
     if (req.method === 'POST') {
-      // Verificar autenticación para crear productos
-      const user = verifyToken(req);
-      if (!user) {
+      // Verificar autenticación
+      const usuario = verificarToken(req);
+      if (!usuario) {
         return res.status(401).json({ error: 'No autorizado' });
       }
-      
+
       const form = formidable({
         maxFileSize: 5 * 1024 * 1024, // 5MB
-        filter: ({ mimetype }) => mimetype && mimetype.includes('image'),
+        filter: ({ mimetype }) => mimetype && mimetype.includes('image')
       });
-      
+
       const [fields, files] = await form.parse(req);
       
-      let imagenUrl = null;
+      let imagenUrl = '';
       if (files.imagen && files.imagen[0]) {
-        imagenUrl = await uploadImageToSupabase(files.imagen[0]);
+        imagenUrl = await subirImagen(files.imagen[0]);
       }
+
+      const productos = await leerProductos();
+      const nuevoId = productos.length > 0 ? Math.max(...productos.map(p => p.id)) + 1 : 1;
       
-      const { data, error } = await supabase
-        .from('productos')
-        .insert({
-          nombre: fields.nombre[0],
-          precio: parseFloat(fields.precio[0]),
-          categoria: fields.categoria[0],
-          descripcion: fields.descripcion[0],
-          stock: parseInt(fields.stock[0]) || 0,
-          imagen: imagenUrl,
-          activo: true
-        })
-        .select();
-      
-      if (error) throw error;
-      return res.json(data[0]);
-    }
-    
-    if (req.method === 'PUT') {
-      // Verificar autenticación para actualizar productos
-      const user = verifyToken(req);
-      if (!user) {
-        return res.status(401).json({ error: 'No autorizado' });
-      }
-      
-      const form = formidable({
-        maxFileSize: 5 * 1024 * 1024,
-        filter: ({ mimetype }) => mimetype && mimetype.includes('image'),
-      });
-      
-      const [fields, files] = await form.parse(req);
-      const productId = fields.id[0];
-      
-      let updateData = {
+      const nuevoProducto = {
+        id: nuevoId,
         nombre: fields.nombre[0],
-        precio: parseFloat(fields.precio[0]),
-        categoria: fields.categoria[0],
         descripcion: fields.descripcion[0],
-        stock: parseInt(fields.stock[0]) || 0
+        precio: parseFloat(fields.precio[0]),
+        imagen: imagenUrl,
+        categoria: fields.categoria[0] || 'general',
+        stock: parseInt(fields.stock[0]) || 0,
+        activo: true,
+        fecha_creacion: new Date().toISOString()
       };
+
+      productos.push(nuevoProducto);
+      await escribirProductos(productos);
       
-      // Si hay nueva imagen, subirla
-      if (files.imagen && files.imagen[0]) {
-        updateData.imagen = await uploadImageToSupabase(files.imagen[0]);
-      }
-      
-      const { data, error } = await supabase
-        .from('productos')
-        .update(updateData)
-        .eq('id', productId)
-        .select();
-      
-      if (error) throw error;
-      return res.json(data[0]);
+      return res.status(201).json(nuevoProducto);
     }
     
     if (req.method === 'DELETE') {
-      // Verificar autenticación para eliminar productos
-      const user = verifyToken(req);
-      if (!user) {
+      // Verificar autenticación
+      const usuario = verificarToken(req);
+      if (!usuario) {
         return res.status(401).json({ error: 'No autorizado' });
       }
-      
+
       const { id } = req.query;
+      const productos = await leerProductos();
+      const productoIndex = productos.findIndex(p => p.id === parseInt(id));
       
-      const { error } = await supabase
-        .from('productos')
-        .update({ activo: false })
-        .eq('id', id);
+      if (productoIndex === -1) {
+        return res.status(404).json({ error: 'Producto no encontrado' });
+      }
+
+      productos[productoIndex].activo = false;
+      await escribirProductos(productos);
       
-      if (error) throw error;
-      return res.json({ message: 'Producto eliminado' });
+      return res.status(200).json({ message: 'Producto eliminado' });
     }
+
+    return res.status(405).json({ error: 'Método no permitido' });
     
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Error del servidor' });
+    console.error('Error en API productos:', error);
+    return res.status(500).json({ error: 'Error interno del servidor' });
   }
-}
+};

@@ -1,10 +1,22 @@
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
-import { createClient } from '@supabase/supabase-js';
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const fs = require('fs').promises;
+const path = require('path');
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+const USUARIOS_FILE = path.join(process.cwd(), 'data', 'usuarios.json');
 
-export default async function handler(req, res) {
+// Función para leer usuarios
+async function leerUsuarios() {
+  try {
+    const data = await fs.readFile(USUARIOS_FILE, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    return [];
+  }
+}
+
+module.exports = async (req, res) => {
+  // Configurar CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -18,27 +30,46 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { username, password } = req.body;
+    const { usuario, password } = req.body;
     
-    const { data: user, error } = await supabase
-      .from('usuarios')
-      .select('*')
-      .eq('username', username)
-      .single();
+    if (!usuario || !password) {
+      return res.status(400).json({ error: 'Usuario y contraseña requeridos' });
+    }
+
+    const usuarios = await leerUsuarios();
+    const usuarioEncontrado = usuarios.find(u => u.usuario === usuario && u.activo);
     
-    if (error || !user || !bcrypt.compareSync(password, user.password)) {
+    if (!usuarioEncontrado) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+
+    const passwordValido = await bcrypt.compare(password, usuarioEncontrado.password);
+    
+    if (!passwordValido) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
     const token = jwt.sign(
-      { id: user.id, username: user.username },
+      { 
+        id: usuarioEncontrado.id, 
+        usuario: usuarioEncontrado.usuario,
+        rol: usuarioEncontrado.rol 
+      },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
+
+    return res.status(200).json({ 
+      token,
+      usuario: {
+        id: usuarioEncontrado.id,
+        usuario: usuarioEncontrado.usuario,
+        rol: usuarioEncontrado.rol
+      }
+    });
     
-    res.json({ token, username: user.username });
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Error del servidor' });
+    console.error('Error en login:', error);
+    return res.status(500).json({ error: 'Error interno del servidor' });
   }
-}
+};
