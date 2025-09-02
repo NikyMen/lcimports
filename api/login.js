@@ -1,19 +1,11 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const fs = require('fs').promises;
-const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
 
-const USUARIOS_FILE = path.join(process.cwd(), 'data', 'usuarios.json');
-
-// Función para leer usuarios
-async function leerUsuarios() {
-  try {
-    const data = await fs.readFile(USUARIOS_FILE, 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    return [];
-  }
-}
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+);
 
 module.exports = async (req, res) => {
   // Configurar CORS
@@ -36,14 +28,18 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'Usuario y contraseña requeridos' });
     }
 
-    const usuarios = await leerUsuarios();
-    const usuarioEncontrado = usuarios.find(u => u.usuario === usuario && u.activo);
+    // Buscar usuario en Supabase (usando 'username' como en tu tabla)
+    const { data: usuarios, error } = await supabase
+      .from('usuarios')
+      .select('*')
+      .eq('username', usuario)
+      .single();
     
-    if (!usuarioEncontrado) {
+    if (error || !usuarios) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    const passwordValido = await bcrypt.compare(password, usuarioEncontrado.password);
+    const passwordValido = await bcrypt.compare(password, usuarios.password);
     
     if (!passwordValido) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
@@ -51,9 +47,9 @@ module.exports = async (req, res) => {
 
     const token = jwt.sign(
       { 
-        id: usuarioEncontrado.id, 
-        usuario: usuarioEncontrado.usuario,
-        rol: usuarioEncontrado.rol 
+        id: usuarios.id, 
+        usuario: usuarios.username,
+        rol: 'admin'
       },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
@@ -62,9 +58,9 @@ module.exports = async (req, res) => {
     return res.status(200).json({ 
       token,
       usuario: {
-        id: usuarioEncontrado.id,
-        usuario: usuarioEncontrado.usuario,
-        rol: usuarioEncontrado.rol
+        id: usuarios.id,
+        usuario: usuarios.username,
+        rol: 'admin'
       }
     });
     

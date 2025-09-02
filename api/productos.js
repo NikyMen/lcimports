@@ -9,25 +9,6 @@ const supabase = createClient(
   process.env.SUPABASE_ANON_KEY
 );
 
-// Rutas de archivos JSON
-const PRODUCTOS_FILE = path.join(process.cwd(), 'data', 'productos.json');
-const USUARIOS_FILE = path.join(process.cwd(), 'data', 'usuarios.json');
-
-// Función para leer productos
-async function leerProductos() {
-  try {
-    const data = await fs.readFile(PRODUCTOS_FILE, 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    return [];
-  }
-}
-
-// Función para escribir productos
-async function escribirProductos(productos) {
-  await fs.writeFile(PRODUCTOS_FILE, JSON.stringify(productos, null, 2));
-}
-
 // Función para verificar JWT
 function verificarToken(req) {
   const authHeader = req.headers.authorization;
@@ -49,16 +30,15 @@ async function subirImagen(file) {
   const fileBuffer = await fs.readFile(file.filepath);
   
   const { data, error } = await supabase.storage
-    .from('productos-images')
+    .from('productos')
     .upload(fileName, fileBuffer, {
-      contentType: file.mimetype,
-      upsert: false
+      contentType: file.mimetype
     });
 
   if (error) throw error;
   
   const { data: { publicUrl } } = supabase.storage
-    .from('productos-images')
+    .from('productos')
     .getPublicUrl(fileName);
     
   return publicUrl;
@@ -76,9 +56,15 @@ module.exports = async (req, res) => {
 
   try {
     if (req.method === 'GET') {
-      // Obtener todos los productos
-      const productos = await leerProductos();
-      return res.status(200).json(productos.filter(p => p.activo));
+      // Obtener todos los productos activos
+      const { data: productos, error } = await supabase
+        .from('productos')
+        .select('*')
+        .eq('activo', true)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return res.status(200).json(productos || []);
     }
     
     if (req.method === 'POST') {
@@ -99,26 +85,25 @@ module.exports = async (req, res) => {
       if (files.imagen && files.imagen[0]) {
         imagenUrl = await subirImagen(files.imagen[0]);
       }
-
-      const productos = await leerProductos();
-      const nuevoId = productos.length > 0 ? Math.max(...productos.map(p => p.id)) + 1 : 1;
       
       const nuevoProducto = {
-        id: nuevoId,
         nombre: fields.nombre[0],
         descripcion: fields.descripcion[0],
         precio: parseFloat(fields.precio[0]),
         imagen: imagenUrl,
         categoria: fields.categoria[0] || 'general',
         stock: parseInt(fields.stock[0]) || 0,
-        activo: true,
-        fecha_creacion: new Date().toISOString()
+        activo: true
       };
 
-      productos.push(nuevoProducto);
-      await escribirProductos(productos);
+      const { data, error } = await supabase
+        .from('productos')
+        .insert([nuevoProducto])
+        .select()
+        .single();
       
-      return res.status(201).json(nuevoProducto);
+      if (error) throw error;
+      return res.status(201).json(data);
     }
     
     if (req.method === 'DELETE') {
@@ -129,16 +114,13 @@ module.exports = async (req, res) => {
       }
 
       const { id } = req.query;
-      const productos = await leerProductos();
-      const productoIndex = productos.findIndex(p => p.id === parseInt(id));
       
-      if (productoIndex === -1) {
-        return res.status(404).json({ error: 'Producto no encontrado' });
-      }
-
-      productos[productoIndex].activo = false;
-      await escribirProductos(productos);
+      const { error } = await supabase
+        .from('productos')
+        .update({ activo: false })
+        .eq('id', parseInt(id));
       
+      if (error) throw error;
       return res.status(200).json({ message: 'Producto eliminado' });
     }
 
