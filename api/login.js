@@ -1,11 +1,19 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { createClient } = require('@supabase/supabase-js');
+const fs = require('fs');
+const path = require('path');
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
-);
+// Función para leer usuarios desde JSON
+function leerUsuarios() {
+  try {
+    const rutaUsuarios = path.join(process.cwd(), 'data', 'usuarios.json');
+    const data = fs.readFileSync(rutaUsuarios, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    console.error('Error leyendo usuarios:', error);
+    return [];
+  }
+}
 
 module.exports = async (req, res) => {
   // Configurar CORS
@@ -28,39 +36,37 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'Usuario y contraseña requeridos' });
     }
 
-    // Buscar usuario en Supabase (usando 'username' como en tu tabla)
-    const { data: usuarios, error } = await supabase
-      .from('usuarios')
-      .select('*')
-      .eq('username', usuario)
-      .single();
+    // Buscar usuario en archivo JSON
+    const usuarios = leerUsuarios();
+    const usuarioEncontrado = usuarios.find(u => u.usuario === usuario);
     
-    if (error || !usuarios) {
+    if (!usuarioEncontrado) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    const passwordValido = await bcrypt.compare(password, usuarios.password);
+    const passwordValido = await bcrypt.compare(password, usuarioEncontrado.password);
     
     if (!passwordValido) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
+    // JWT sin variable de entorno (clave fija para simplicidad)
     const token = jwt.sign(
       { 
-        id: usuarios.id, 
-        usuario: usuarios.username,
-        rol: 'admin'
+        id: usuarioEncontrado.id, 
+        usuario: usuarioEncontrado.usuario,
+        rol: usuarioEncontrado.rol
       },
-      process.env.JWT_SECRET,
+      'mi-clave-secreta-local-2024', // Clave fija
       { expiresIn: '24h' }
     );
 
     return res.status(200).json({ 
       token,
       usuario: {
-        id: usuarios.id,
-        usuario: usuarios.username,
-        rol: 'admin'
+        id: usuarioEncontrado.id,
+        usuario: usuarioEncontrado.usuario,
+        rol: usuarioEncontrado.rol
       }
     });
     
